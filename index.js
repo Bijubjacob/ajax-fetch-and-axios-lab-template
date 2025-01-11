@@ -1,8 +1,3 @@
-// You have axios, you don't need to import it
-// console.log(axios);
-
-import { createCarouselItem, appendCarousel, clear, start } from './Carousel.js';
-
 // The breed selection input element.
 const breedSelect = document.getElementById('breedSelect');
 // The information section div element.
@@ -25,25 +20,26 @@ const API_KEY = 'live_PTBsZu7ulArXcFor0bDlKJCM1Os7Dhqfjh75emz56pmECuK4m3fCyH3C1s
  */
 
 async function initialLoad() {
-    try {
-        const res = await fetch('https://api.thecatapi.com/v1/breeds');
-        const data = await res.json();
-        console.log(data);
+    const res = await fetch('https://api.thecatapi.com/v1/breeds/abys', {
+        method: 'GET',
+        headers: {
+            'x-api-key': API_KEY
+        },
+        mode: 'no-cors'
+    });
+    const data = await res.json();
 
-        // Create option tags
-        for (const breed of data) {
-            const option = document.createElement('option');
-            option.setAttribute('value', breed.id);
-            option.textContent = breed.name;
-            breedSelect.append(option);
+    for (let i = 0; i < data.length; i++) {
+        let option = document.createElement("OPTION");
+        option.id = data[i].id;
+        option.value = data[i].id;
+        option.text = data[i].name;
 
-        }
-
-        getNewCat();
-
-        console.log(breedSelect);
-    } catch (err) {
-        console.log(err);
+        breedSelect.appendChild(option);
+    }
+    if (breedSelect.firstChild) {
+        breedSelect.selectedIndex = 0
+        breedSelect.dispatchEvent(new Event('change'))
     }
 }
 
@@ -63,206 +59,241 @@ initialLoad();
  * - Each new selection should clear, re-populate, and restart the Carousel.
  * - Add a call to this function to the end of your initialLoad function above to create the initial carousel.
  */
-//Hint
-// Carousel.createCarouselItem();
-// Fetching random cat image
-// Example usage of creating and appending a carousel item
 
-// Ensure carouselContainer is correctly defined
-const carouselContainer = document.querySelector('#carouselInner');
+document.addEventListener("DOMContentLoaded", () => {
+    initialLoad();  // Initial load of breeds and images
 
-// Example of how the carousel items are added
-breedSelect.addEventListener('change', async (event) => {
-    const breedId = event.target.value;
+    breedSelect.addEventListener("change", async (e) => {
+        clearCarousel();  // Clear existing carousel items before fetching new ones
+        const breedId = e.target.value;  // Get selected breed ID
+        await handleBreedSelection(breedId);  // Fetch and display breed info and images
+    });
 
-    // Clear current carousel items and info section
-    clearCarousel();
-    infoDump.innerHTML = '';
+    // Function to handle breed selection
+    async function handleBreedSelection(breedId) {
+        try {
+            // Clear existing carousel items before fetching new ones
+            clearCarousel();
 
-    try {
-        // Fetch breed information
-        const breedRes = await fetch(`https://api.thecatapi.com/v1/breeds/${breedId}`, {
-            method: 'GET',
-            headers: {
-                'x-api-key': API_KEY
-            }
-        });
-        const breedInfo = await breedRes.json();
-
-        displayBreedInfo(breedInfo);
-
-        // Fetch images for selected breed
-        const imgRes = await fetch(`https://api.thecatapi.com/v1/images/search?breed_ids=${breedId}&limit=5`, {
-            method: 'GET',
-            headers: {
-                'x-api-key': API_KEY
-            }
-        });
-        const images = await imgRes.json();
-
-        // Create carousel items for each image
-        images.forEach(image => {
-            const carouselItem = createCarouselItem(image.url, breedInfo.name, breedInfo.id);
-            carouselContainer.appendChild(carouselItem);
-        });
-
-    } catch (err) {
-        console.log('Error fetching breed or image data:', err);
-    }
-});
-
-/**
- * Function to create a new random cat image and add it to the carousel.
- */
-async function getNewCat() {
-    try {
-        progressBar.style.width = '0%';  // Reset progress bar before fetching new image
-
-        // Get the image element for random cat image
-        const img = document.querySelector('#randomCatImage');  // Assuming you have an img element with id "randomCatImage"
-
-        if (!img) {
-            console.error("Image element with id 'randomCatImage' not found.");
-            return;
-        }
-
-        // Show progress bar
-        progressBar.style.width = '50%';
-
-        const res = await fetch('https://api.thecatapi.com/v1/images/search', {
-            method: 'GET',
-            headers: {
-                'x-api-key': API_KEY
-            }
-        });
-        const data = await res.json();
-        const imgUrl = data[0].url;
-
-        img.src = imgUrl;  // Set the random image
-        progressBar.style.width = '100%';  // Complete progress
-
-    } catch (err) {
-        console.log('Error fetching new cat image:', err);
-    }
-}
-
-
-/**
- * Helper function to display breed information in the infoDump section.
- */
-function displayBreedInfo(breedInfo) {
-    const info = document.createElement('div');
-    info.classList.add('breed-info');
-    info.innerHTML = `
-        <h2>${breedInfo.name}</h2>
-        <p><strong>Origin:</strong> ${breedInfo.origin}</p>
-        <p><strong>Description:</strong> ${breedInfo.description}</p>
-        <p><strong>Temperament:</strong> ${breedInfo.temperament}</p>
-    `;
-    infoDump.appendChild(info);
-}
-
-// Clear the carousel content
-function clearCarousel() {
-    if (carouselContainer) {
-        carouselContainer.innerHTML = ''; // Clear current carousel content
-    } else {
-        console.error("Carousel container not found.");
-    }
-}
-
-
-// At the point, you need to push your code up to your OWN github repo
-// go to the folder you cloned in today, and clone your repo  again and give it the name below
-
-/**
- * 3. Fork your own sandbox, creating a new one named "JavaScript Axios Lab."
- */
-/**
- * 4. Change all of your fetch() functions to axios!
- * - axios has already been imported for you within index.js.
- * - If you've done everything correctly up to this point, this should be simple.
- * - If it is not simple, take a moment to re-evaluate your original code.
- * - Hint: Axios has the ability to set default headers. Use this to your advantage
- *   by setting a default header with your API key so that you do not have to
- *   send it manually with all of your requests! You can also set a default base URL!
- */
-/**
- * 5. Add axios interceptors to log the time between request and response to the console.
- * - Hint: you already have access to code that does this!
- * - Add a console.log statement to indicate when requests begin.
- * - As an added challenge, try to do this on your own without referencing the lesson material.
- */
-
-/**
- * 6. Next, we'll create a progress bar to indicate the request is in progress.
- * - The progressBar element has already been created for you.
- *  - You need only to modify its "width" style property to align with the request progress.
- * - In your request interceptor, set the width of the progressBar element to 0%.
- *  - This is to reset the progress with each request.
- * - Research the axios onDownloadProgress config option.
- * - Create a function "updateProgress" that receives a ProgressEvent object.
- *  - Pass this function to the axios onDownloadProgress config option in your event handler.
- * - console.log your ProgressEvent object within updateProgess, and familiarize yourself with its structure.
- *  - Update the progress of the request using the properties you are given.
- * - Note that we are not downloading a lot of data, so onDownloadProgress will likely only fire
- *   once or twice per request to this API. This is still a concept worth familiarizing yourself
- *   with for future projects.
- */
-
-/**
- * 7. As a final element of progress indication, add the following to your axios interceptors:
- * - In your request interceptor, set the body element's cursor style to "progress."
- * - In your response interceptor, remove the progress cursor style from the body element.
- */
-/**
- * 8. To practice posting data, we'll create a system to "favourite" certain images.
- * - The skeleton of this function has already been created for you.
- * - This function is used within Carousel.js to add the event listener as items are created.
- *  - This is why we use the export keyword for this function.
- * - Post to the cat API's favourites endpoint with the given ID.
- * - The API documentation gives examples of this functionality using fetch(); use Axios!
- * - Add additional logic to this function such that if the image is already favourited,
- *   you delete that favourite using the API, giving this function "toggle" functionality.
- * - You can call this function by clicking on the heart at the top right of any image.
- */
-export async function favourite(imgId) {
-    try {
-        // Fetch the current favourites
-        const res = await fetch(`https://api.thecatapi.com/v1/favourites?image_id=${imgId}`, {
-            method: 'GET',
-            headers: {
-                'x-api-key': API_KEY
-            }
-        });
-        const favourites = await res.json();
-
-        if (favourites.length > 0) {
-            // If already favourited, remove it
-            const favId = favourites[0].id;
-            await fetch(`https://api.thecatapi.com/v1/favourites/${favId}`, {
-                method: 'DELETE',
+            // Fetch breed details using fetch()
+            const breedRes = await fetch(`https://api.thecatapi.com/v1/breeds/${breedId}`, {
+                method: 'GET',
                 headers: {
                     'x-api-key': API_KEY
                 }
             });
-            console.log('Image removed from favourites');
-        } else {
-            // Otherwise, add the image to favourites
-            await fetch('https://api.thecatapi.com/v1/favourites', {
-                method: 'POST',
+            const breedData = await breedRes.json();
+            displayBreedInfo(breedData);  // Display breed info
+
+            // Fetch breed images using fetch()
+            const imgRes = await fetch(`https://api.thecatapi.com/v1/images/search?breed_ids=${breedId}&limit=5`, {
+                method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json',
                     'x-api-key': API_KEY
-                },
-                body: JSON.stringify({ image_id: imgId })
+                }
             });
-            console.log('Image added to favourites');
+            const imgData = await imgRes.json();
+
+            // Check if image data exists
+            if (imgData.length > 0) {
+                imgData.forEach(image => {
+                    const carItem = createCarouselItem(image.url, image.id);
+                    appendCarousel(carItem);
+                });
+            } else {
+                console.log("No images found for this breed.");
+                infoDump.innerText = "No images found for this breed.";
+            }
+
+            startCarousel();  // Start the carousel after images are added
+        } catch (error) {
+            console.error("Error fetching breed or images", error);
+            infoDump.innerText = "Oops! Something went wrong.";
         }
-    } catch (err) {
-        console.log('Error toggling favourite:', err);
+    }
+
+
+    // Function to display breed info
+    function displayBreedInfo(breedInfo) {
+        infoDump.innerText = breedInfo.description || 'No description available.';
+    }
+});
+
+
+function clearCarousel() {
+    const carouselInner = document.getElementById('carouselInner');
+
+    if (carouselInner) {
+        while (carouselInner.firstChild) {
+            carouselInner.removeChild(carouselInner.firstChild);
+        }
+    } else {
+        console.error("Carousel inner element not found!");
+    }
+
+    infoDump.innerText = '';  // Reset the breed information
+}
+
+/**
+ * Function to display breed information
+ */
+function displayBreedInfo(breedInfo) {
+    try {
+        const description = breedInfo.description || 'No description available for this breed.';
+        infoDump.innerText = description;
+    } catch (e) {
+        infoDump.innerText = 'No information available!';
     }
 }
+
+/**
+ * Function to create carousel items (assuming the Carousel.js functions are now replaced with basic JS)
+ */
+function createCarouselItem(imageUrl, imgId) {
+    // Create the image element
+    const img = document.createElement('img');
+    img.src = imageUrl;  // Ensure the image URL is correct
+    img.alt = 'Cat Image';  // Alt text for accessibility
+    img.className = 'carousel-img';  // Add a class for styling
+    img.dataset.id = imgId;  // Store the image ID for future use
+    img.addEventListener('click', () => favourite(imgId)); // Add like functionality
+
+    // Create a new carousel item div
+    const div = document.createElement('div');
+    div.className = 'carousel-item';
+
+    // Append the image to the carousel item div
+    div.appendChild(img);
+
+    return div;
+}
+
+/**
+ * Function to append to the carousel
+ */
+export function appendCarousel(carItem) {
+    const carouselInner = document.getElementById('carouselInner');
+
+    if (carouselInner) {
+        carouselInner.appendChild(carItem);  // Append if carouselInner exists
+    } else {
+        console.error("Error: carouselInner element not found!");
+    }
+}
+
+/**
+ * Function to start the carousel
+ */
+function startCarousel() {
+    const carousel = new bootstrap.Carousel('#carouselExampleControls', {
+        interval: 3000, // Set an interval to auto-slide
+        ride: 'carousel'
+    });
+    carousel.cycle(); // Start the carousel
+}
+
+/**
+ * 6. Implement progress bar with fetch
+ */
+function updateProgress(event) {
+    if (event.lengthComputable) {
+        const progress = (event.loaded / event.total) * 100;
+        progressBar.style.width = `${progress}%`;
+    }
+}
+
+/**
+ * 8. Implement the favourite functionality using fetch()
+ */
+// The favourite function, as implemented in your code.
+export async function favourite(imgId) {
+    const userId = "user312jacob"; // Or dynamically get user ID
+
+    // Check if the image is already liked
+    const likedPics = await getLikedPics();
+
+    let alreadyLiked = false;
+    for (let i = 0; i < likedPics.length; i++) {
+        if (likedPics[i].image_id === imgId) {
+            await deleteFavourite(likedPics[i].id); // Delete if already liked
+            alreadyLiked = true;
+            break;
+        }
+    }
+
+    if (!alreadyLiked) {
+        await addFavourite(imgId, userId); // Add to favourites
+    }
+}
+
+/**
+ * Function to get liked pictures
+ */
+async function getLikedPics() {
+    const res = await fetch(`https://api.thecatapi.com/v1/favourites?sub_id=user312jacob`, {
+        headers: { 'x-api-key': API_KEY }
+    });
+    const data = await res.json();
+    return data;
+}
+
+/**
+ * Function to add an image to favourites
+ */
+async function addFavourite(imgId, userId) {
+    const body = JSON.stringify({
+        image_id: imgId,
+        sub_id: userId
+    });
+
+    try {
+        const res = await fetch('https://api.thecatapi.com/v1/favourites', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': API_KEY
+            },
+            body: body
+        });
+        const data = await res.json();
+        console.log('Successfully liked the image!', data);
+    } catch (error) {
+        console.log('Error adding to favourites:', error);
+    }
+}
+
+/**
+ * Function to delete a favourite
+ */
+async function deleteFavourite(favId) {
+    try {
+        const res = await fetch(`https://api.thecatapi.com/v1/favourites/${favId}`, {
+            method: 'DELETE',
+            headers: {
+                'x-api-key': API_KEY
+            }
+        });
+        console.log('Successfully removed from favourites', res);
+    } catch (error) {
+        console.log('Error removing from favourites:', error);
+    }
+}
+
+/**
+ * Function to handle the get favourites button
+ */
+getFavouritesBtn.addEventListener('click', async () => {
+    clearCarousel();
+
+    const data = await getLikedPics();
+    data.forEach(item => {
+        const carItem = createCarouselItem(item.image.url, ' cat', item.image_id);
+        appendCarousel(carItem);
+    });
+
+    startCarousel();
+    infoDump.innerText = 'These are your liked pictures!';
+});
 
 
 /**

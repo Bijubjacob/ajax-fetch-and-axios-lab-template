@@ -20,30 +20,37 @@ const API_KEY = 'live_PTBsZu7ulArXcFor0bDlKJCM1Os7Dhqfjh75emz56pmECuK4m3fCyH3C1s
  */
 
 async function initialLoad() {
-    const res = await fetch('https://api.thecatapi.com/v1/breeds/abys', {
-        method: 'GET',
-        headers: {
-            'x-api-key': API_KEY
-        },
-        mode: 'no-cors'
-    });
-    const data = await res.json();
+    try {
+        const res = await fetch('https://api.thecatapi.com/v1/breeds', {
+            headers: {
+                'x-api-key': API_KEY
+            }
+        });
 
-    for (let i = 0; i < data.length; i++) {
-        let option = document.createElement("OPTION");
-        option.id = data[i].id;
-        option.value = data[i].id;
-        option.text = data[i].name;
+        if (!res.ok) {
+            throw new Error('Failed to fetch breeds');
+        }
 
-        breedSelect.appendChild(option);
-    }
-    if (breedSelect.firstChild) {
-        breedSelect.selectedIndex = 0
-        breedSelect.dispatchEvent(new Event('change'))
+        const data = await res.json();
+
+        // Ensure that the following loop is correctly closed
+        for (let i = 0; i < data.length; i++) {
+            let option = document.createElement("OPTION");
+            option.id = data[i].id;
+            option.value = data[i].id;
+            option.text = data[i].name;
+
+            breedSelect.appendChild(option);
+        }
+
+        if (breedSelect.firstChild) {
+            breedSelect.selectedIndex = 0;
+            breedSelect.dispatchEvent(new Event('change'));
+        }
+    } catch (error) {
+        console.error("Error fetching breeds:", error);
     }
 }
-
-initialLoad();
 
 /**
  * 2. Create an event handler for breedSelect that does the following:
@@ -305,6 +312,35 @@ getFavouritesBtn.addEventListener('click', async () => {
  *    If that isn't in its own function, maybe it should be so you don't have to
  *    repeat yourself in this section.
  */
+// Add event listener to "Get Favourites" button
+getFavouritesBtn.addEventListener('click', async () => {
+    clearCarousel();  // Clear the carousel before adding new items
+
+    try {
+        // Fetch the user's favourite images
+        const favsResponse = await axios.get('https://api.thecatapi.com/v1/favourites', {
+            headers: {
+                'x-api-key': API_KEY
+            }
+        });
+
+        // Check if there are any favourite images
+        if (favsResponse.data && favsResponse.data.length > 0) {
+            favsResponse.data.forEach(item => {
+                const carItem = createCarouselItem(item.image.url, item.id);
+                appendCarousel(carItem);  // Append each favourite image to the carousel
+            });
+
+            startCarousel();  // Start the carousel after adding the images
+            infoDump.innerText = 'These are your favourite cat pictures!';
+        } else {
+            infoDump.innerText = 'You have no favourite pictures yet.';
+        }
+    } catch (error) {
+        console.error('Error fetching favourites:', error);
+        infoDump.innerText = 'Oops! Something went wrong while fetching your favourites.';
+    }
+});
 
 /**
  * 10. Test your site, thoroughly!
@@ -313,3 +349,39 @@ getFavouritesBtn.addEventListener('click', async () => {
  * - Test other breeds as well. Not every breed has the same data available, so
  *   your code should account for this.
  */
+
+async function handleBreedSelection(breedId) {
+    try {
+
+        // Fetch breed details
+        const breedRes = await axios.get(`https://api.thecatapi.com/v1/breeds/${breedId}`, {
+            headers: { 'x-api-key': API_KEY }
+        });
+        const breedData = breedRes.data;
+
+        // Fetch breed images
+        const imgRes = await axios.get(`https://api.thecatapi.com/v1/images/search?breed_ids=${breedId}&limit=5`, {
+            headers: { 'x-api-key': API_KEY }
+        });
+        const imgData = imgRes.data;
+
+        // Handle images (or notify if none are available)
+        if (imgData.length > 0) {
+            imgData.forEach(image => {
+                const carItem = createCarouselItem(image.url, image.id);
+                appendCarousel(carItem);
+            });
+        } else {
+            console.log("No images found for this breed.");
+            infoDump.innerText = 'No images available for this breed.';
+        }
+
+        // Start the carousel
+        startCarousel();
+    } catch (error) {
+        console.error("Error fetching breed or images:", error);
+        infoDump.innerText = 'Error loading breed information or images.';
+    }
+}
+
+
